@@ -1,21 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 function App() {
   const [task, setTask] = useState("");
   const [tasks, setTasks] = useState([]);
 
+  const API =
+    "https://task-manager-app-yv93.onrender.com/api/tasks";
+
+  // GET TASKS
+  const fetchTasks = async () => {
+    try {
+      const res = await axios.get(API);
+      setTasks(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  // ADD TASK
   const addTask = async () => {
     if (!task.trim()) return;
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/tasks",
-        {
-          title: task,
-          completed: false,
-        }
-      );
+      const res = await axios.post(API, {
+        title: task,
+        completed: false,
+      });
 
       setTasks([res.data, ...tasks]);
       setTask("");
@@ -24,19 +39,33 @@ function App() {
     }
   };
 
-  const deleteTask = (id) => {
-    const updated = tasks.filter((task) => task.id !== id);
-    setTasks(updated);
+  // DELETE TASK
+  const deleteTask = async (id) => {
+    try {
+      await axios.delete(`${API}/${id}`);
+
+      const updated = tasks.filter((task) => task._id !== id);
+      setTasks(updated);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const toggleComplete = (id) => {
-    const updated = tasks.map((task) =>
-      task.id === id
-        ? { ...task, completed: !task.completed }
-        : task
-    );
+  // TOGGLE COMPLETE
+  const toggleComplete = async (id, completed) => {
+    try {
+      const res = await axios.put(`${API}/${id}`, {
+        completed: !completed,
+      });
 
-    setTasks(updated);
+      const updated = tasks.map((task) =>
+        task._id === id ? res.data : task
+      );
+
+      setTasks(updated);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
@@ -115,7 +144,7 @@ function App() {
         ) : (
           tasks.map((t) => (
             <div
-              key={t.id}
+              key={t._id}
               style={{
                 background: "#334155",
                 padding: "15px",
@@ -127,7 +156,9 @@ function App() {
               }}
             >
               <span
-                onClick={() => toggleComplete(t.id)}
+                onClick={() =>
+                  toggleComplete(t._id, t.completed)
+                }
                 style={{
                   cursor: "pointer",
                   textDecoration: t.completed
@@ -141,7 +172,7 @@ function App() {
               </span>
 
               <button
-                onClick={() => deleteTask(t.id)}
+                onClick={() => deleteTask(t._id)}
                 style={{
                   background: "#ef4444",
                   border: "none",
